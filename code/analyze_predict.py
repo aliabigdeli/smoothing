@@ -22,3 +22,6 @@ if __name__ == "__main__":
     df = pd.DataFrame.from_records(results, "n", columns=["n", "correct, accurate", "correct, inaccurate",
                                                           "incorrect, accurate", "incorrect, inaccurate", "abstain"])
     print(df.to_latex(float_format=lambda f:"{:.2f}".format(f)))
+
+    with open('analyze_predict.tex', 'w') as f:
+        f.write(df.to_latex(float_format=lambda f: "{:.2f}".format(f)))

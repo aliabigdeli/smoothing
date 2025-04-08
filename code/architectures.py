@@ -1,5 +1,6 @@
 import torch
 from torchvision.models.resnet import resnet50
+from torchvision.models import vgg16, VGG16_Weights
 import torch.backends.cudnn as cudnn
 from archs.cifar_resnet import resnet as resnet_cifar
 from datasets import get_normalize_layer
@@ -8,7 +9,7 @@ from torch.nn.functional import interpolate
 # resnet50 - the classic ResNet-50, sized for ImageNet
 # cifar_resnet20 - a 20-layer residual network sized for CIFAR
 # cifar_resnet110 - a 110-layer residual network sized for CIFAR
-ARCHITECTURES = ["resnet50", "cifar_resnet20", "cifar_resnet110"]
+ARCHITECTURES = ["resnet50", "cifar_resnet20", "cifar_resnet110", "vgg16", "resnet50pretrain"]
 
 def get_architecture(arch: str, dataset: str) -> torch.nn.Module:
     """ Return a neural network (with random weights)
@@ -19,6 +20,13 @@ def get_architecture(arch: str, dataset: str) -> torch.nn.Module:
     """
     if arch == "resnet50" and dataset == "imagenet":
         model = torch.nn.DataParallel(resnet50(pretrained=False)).cuda()
+        cudnn.benchmark = True
+    elif arch == "resnet50pretrain" and dataset == "imagenet":
+        model = torch.nn.DataParallel(resnet50(pretrained=True)).cuda()
+        cudnn.benchmark = True
+    elif arch == "vgg16" and dataset == "imagenet":
+        model = torch.nn.DataParallel(vgg16(pretrained=False)).cuda()
+        # model = torch.nn.DataParallel(vgg16(weights=VGG16_Weights.DEFAULT)).cuda()
         cudnn.benchmark = True
     elif arch == "cifar_resnet20":
         model = resnet_cifar(depth=20, num_classes=10).cuda()

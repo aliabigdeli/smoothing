@@ -73,6 +73,63 @@ class Smooth(object):
         else:
             return top2[0]
 
+    def predict_sum(self, x: torch.tensor, n: int, alpha: float, batch_size: int) -> int:
+        """ the sum version of the predict function.
+        class returned by this method will estimate g(x).
+
+        :param x: the input [channel x height x width]
+        :param n: the number of samples to use
+        :param alpha: the failure probability
+        :param batch_size: batch size to use when evaluating the base classifier
+        :return: the predicted class, or ABSTAIN
+        """
+        self.base_classifier.eval()
+        num = n
+        sum_outputs = np.zeros(self.num_classes)
+        with torch.no_grad():
+            for _ in range(ceil(num / batch_size)):
+                this_batch_size = min(batch_size, num)
+                num -= this_batch_size
+
+                batch = x.repeat((this_batch_size, 1, 1, 1))
+                noise = torch.randn_like(batch, device='cuda') * self.sigma
+                outputs = self.base_classifier(batch + noise)
+                sum_outputs += outputs.cpu().numpy().sum(0)
+            prediction = sum_outputs.argmax(0)
+            return prediction
+    
+    def predict_both(self, x: torch.tensor, n: int, alpha: float, batch_size: int) -> int:
+        """ the sum version of the predict function.
+        class returned by this method will estimate g(x).
+
+        :param x: the input [channel x height x width]
+        :param n: the number of samples to use
+        :param alpha: the failure probability
+        :param batch_size: batch size to use when evaluating the base classifier
+        :return: the predicted class, or ABSTAIN
+        """
+        self.base_classifier.eval()
+        num = n
+        sum_outputs = np.zeros(self.num_classes)
+        with torch.no_grad():
+            counts = np.zeros(self.num_classes, dtype=int)
+            for _ in range(ceil(num / batch_size)):
+                this_batch_size = min(batch_size, num)
+                num -= this_batch_size
+
+                batch = x.repeat((this_batch_size, 1, 1, 1))
+                noise = torch.randn_like(batch, device='cuda') * self.sigma
+                outputs = self.base_classifier(batch + noise)
+                predictions = outputs.argmax(1)
+                counts += self._count_arr(predictions.cpu().numpy(), self.num_classes)
+                sum_outputs += outputs.cpu().numpy().sum(0)
+            prediction_sum = sum_outputs.argmax(0)
+            top2 = counts.argsort()[::-1][:2]
+            count1 = counts[top2[0]]
+            count2 = counts[top2[1]]
+            prediction = Smooth.ABSTAIN if binom_test(count1, count1 + count2, p=0.5) > alpha else top2[0]
+            return prediction, prediction_sum
+
     def _sample_noise(self, x: torch.tensor, num: int, batch_size) -> np.ndarray:
         """ Sample the base classifier's prediction under noisy corruptions of the input x.
 

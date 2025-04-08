@@ -63,14 +63,16 @@ def _imagenet(split: str) -> Dataset:
     if split == "train":
         subdir = os.path.join(dir, "train")
         transform = transforms.Compose([
-            transforms.RandomSizedCrop(224),
+            # transforms.RandomSizedCrop(224),
+            transforms.RandomResizedCrop(224),
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor()
         ])
     elif split == "test":
         subdir = os.path.join(dir, "val")
         transform = transforms.Compose([
-            transforms.Scale(256),
+            # transforms.Scale(256),
+            transforms.Resize(256),
             transforms.CenterCrop(224),
             transforms.ToTensor()
         ])
